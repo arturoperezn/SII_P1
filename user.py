@@ -4,6 +4,8 @@ from hashlib import sha256, sha1
 
 app = Quart(__name__)
 
+# source .venv/bin/activate
+
 users = {}
 secret_uuid = uuid4()
 
@@ -32,6 +34,6 @@ if __name__ == '__main__':
 
 
 """   curl -X PUT http://127.0.0.1:5050/user \
-         -H "Content-Type: application/json" \
-         -d '{"name": "alice", "password": "mi_password"}'
+        -H "Content-Type: application/json" \
+        -d '{"name": "alice", "password": "mi_password"}'
 """
