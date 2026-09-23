@@ -14,11 +14,12 @@ app = Quart(__name__)
 users = {}
 secret_uuid = uuid4()
 
-# funciones aux
+# Función aux para guardar la contraseña encriptada usando SHA-256
 def hash_pwd (password: str) -> str:
     #encode lo convierte a bits (sha256 necesita bits), sha256 encripta y hexdigest lo convierte a hex
     return sha256(password.encode()).hexdigest()
 
+# Comprueba si la petición actual trae un token válido de sesión
 def check_login():
     token = request.headers.get("Authorization")
     if not token: 
@@ -31,6 +32,8 @@ def check_login():
             return user
     return None
 
+
+# Crea un usuario nuevo con nombre, contraseña y token de acceso
 @app.put('/user')
 async def create_user():
     
@@ -71,7 +74,9 @@ async def create_user():
     
 if __name__ == '__main__':
     app.run(host='localhost', port=5050)
+    
 
+# Inicia sesión comprobando nombre y contraseña y devuelve el token
 @app.post("/user")
 async def login():
     data = await request.get_json()
@@ -95,6 +100,7 @@ async def login():
     })
 
 
+# Cambia la contraseña del usuario
 @app.patch("/user")
 async def modify_user():
     #si no esta iniciada la sesion fallar
