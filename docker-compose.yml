@@ -1,0 +1,24 @@
+version: '3.8'
+services:
+  usersvc:
+    build: .
+    ports:
+      - "5050:5050"
+    volumes:
+      - .:/app
+    environment:
+      - PORT=5050
+    restart: unless-stopped
+
+  filesvc:
+    build: .
+    command: [ "hypercorn", "src.file:app", "--bind", "0.0.0.0:5051" ]
+    ports:
+      - "5051:5051"
+    volumes:
+      - .:/app # <-- Comparte la misma carpeta y lee el .env generado por usersvc
+    environment:
+      - PORT=5051
+    depends_on:
+      - usersvc
+    restart: unless-stopped
