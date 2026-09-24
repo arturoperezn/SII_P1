@@ -97,7 +97,7 @@ def hash_pwd (password: str) -> str:
 # Comprueba si la petición actual trae un token válido de sesión
 def check_login():
     token = request.headers.get("Authorization")
-    if not token: 
+    if not token or not token.startswith("Bearer "): 
         return None
             
     token = token.replace("Bearer ", "")

@@ -5,6 +5,7 @@ from pathlib import Path
 
 app = Quart(__name__)
 
+files = {}  
 
 # Load SECRET_UUID from environment or from a .env file in the project root.
 # If none exists, generate one and persist it into .env for subsequent runs.
@@ -78,16 +79,33 @@ def _load_or_create_secret_uuid_env(env_filename: str = '.env'):
     return new_uuid
 
 secret_uuid = _load_or_create_secret_uuid_env()
-"""
-def check_login():
+
+# Comprueba si la petición actual trae un token válido de sesión
+def check_login(uid):
     token = request.headers.get("Authorization")
-    if not token: 
-        return None
-            
+    if not token or not token.startswith("Bearer "): 
+        return False
     token = token.replace("Bearer ", "")
-        
-    for user in users.values():
-        if user.get("token") == token:
-            return user
-    return None
-    """
+    if token != str(uuid5(secret_uuid, uid)):
+        return False
+    return True
+
+# Devuelve la lista de documentos de un usuario
+@app.get('/file/<uid>')
+async  def get_user_documents(uid):
+    if not check_login(uid):
+        return jsonify({"error": "Unauthorized"}), 401
+    # El usuario está autenticado y tiene permiso, devuekve la lista de documentos
+    user_documents = files.get(uid, {})
+    return jsonify({"documents": user_documents}), 200
+
+# Crea o actualiza documento de usuario
+@app.put('/file/<uid>/<filename>')
+async def create_or_update_user_document(uid, filename):
+    if not check_login(uid):
+        return jsonify({"error": "Unauthorized"}), 401
+    # El usuario está autenticado y tiene permiso, crea o actualiza el documento
+    user_documents = files.setdefault(uid, {})
+    if filename not in user_documents:
+        user_documents.append(filename)
+    return jsonify({"message": f"Document '{filename}' created/updated for user '{uid}'."}), 200
