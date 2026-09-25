@@ -2,7 +2,8 @@ from quart import Quart, jsonify, request
 from uuid import uuid4, uuid5, UUID
 import os
 from pathlib import Path
-from hashlib import sha256, sha1
+from hashlib import sha256
+import json
 
 app = Quart(__name__)
 
@@ -13,11 +14,15 @@ app = Quart(__name__)
         -d '{"name": "alice", "password": "mi_password"}'
 """
 
+user_data_path = Path("/app/data/users.json")
 users = {}
+if user_data_path.exists():
+    with open(user_data_path, "r") as f:
+        users = json.load(f)
 
 # Carga o genera un UUID secreto para la aplicación, que se usará para generar tokens de usuario.
 def _load_or_create_secret_uuid_env():
-    secret_path = Path("app/shared_data/secret_uuid.txt")
+    secret_path = Path("/app/shared_data/secret_uuid.txt")
     secret_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         secret_uuid = str(uuid4())
@@ -43,9 +48,11 @@ def check_login():
         return None
             
     token = token.replace("Bearer ", "")
+    if not token:
+        return None
         
     for user in users.values():
-        if user.get("token") == token:
+        if str(uuid5(UUID(secret_uuid), user["uid"])) == token:
             return user
     return None
 
@@ -63,10 +70,10 @@ async def create_user():
     password = data.get("password")
     
     if not name:
-            return jsonify({"error": "Falta name"}), 400
+        return jsonify({"error": "Falta name"}), 400
     
     if not password:
-                return jsonify({"error": "Falta password"}), 400
+        return jsonify({"error": "Falta password"}), 400
     
     #comprobar si ya existe
     if (name in users):
@@ -75,14 +82,18 @@ async def create_user():
     #crear uid y token de este usuario
     user_uid = str(uuid4())
     pwd_hash = hash_pwd(password)
-    token = str(uuid5(secret_uuid, user_uid))
+    token = str(uuid5(UUID(secret_uuid), user_uid))
     
     users[name] = {
         "uid": user_uid,
-        "pwd_hash": pwd_hash,
-        "token": token
+        "pwd_hash": pwd_hash
     }
-    
+
+    # Guardar usuario en archivo de datos
+    user_data_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(user_data_path, "w") as f:
+        json.dump(users, f)
+
     return jsonify({
         "uid": user_uid,
         "token": token
@@ -96,7 +107,7 @@ async def create_user():
 async def login():
     data = await request.get_json()
     if not data:
-        return jsonify({"error": "Faltan datos"}), 400
+        return jsonify({"error": "Faltan parámetros requeridos"}), 400
     
     name = data.get("name")
     password = data.get("password")
@@ -111,8 +122,8 @@ async def login():
     
     return jsonify({
         "uid": user["uid"],
-        "token": user["token"]
-    })
+        "token": str(uuid5(UUID(secret_uuid), user["uid"]))
+    }), 200
 
 
 # Cambia la contraseña del usuario
@@ -124,13 +135,17 @@ async def modify_user():
         return jsonify({"error": "No autorizado"}), 401
         
     data = await request.get_json()
+    if not data:
+        return jsonify({"error": "Faltan parámetros requeridos"}), 400
     password = data.get("password")
     
     if not password:
         return jsonify ({"error": "Falta nueva password"}), 400
     
-    user ["pwd_hash"] = hash_pwd(password)
-    return jsonify ({"ok": True})
+    user["pwd_hash"] = hash_pwd(password)
+    with open(user_data_path, "w") as f:
+        json.dump(users, f)
+    return jsonify ({"message": "Contraseña actualizada correctamente"}), 200
     
 if __name__ == '__main__':
-    app.run(host='localhost', port=5050)
+    app.run(host='0.0.0.0', port=5050)
