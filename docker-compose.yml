@@ -2,10 +2,12 @@ version: '3.8'
 services:
   usersvc:
     build: .
+    command: [ "hypercorn", "src.user:app", "--bind", "0.0.0.0:5050" ]
     ports:
       - "5050:5050"
     volumes:
-      - .:/app
+      - ./data_users:/app/data
+      - ./shared_data:/app/shared_data
     environment:
       - PORT=5050
     restart: unless-stopped
@@ -16,7 +18,8 @@ services:
     ports:
       - "5051:5051"
     volumes:
-      - .:/app # <-- Comparte la misma carpeta y lee el .env generado por usersvc
+      - ./data_files:/app/data
+      - ./shared_data:/app/shared_data
     environment:
       - PORT=5051
     depends_on:
