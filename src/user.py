@@ -92,7 +92,7 @@ async def create_user():
     # Guardar usuario en archivo de datos
     user_data_path.parent.mkdir(parents=True, exist_ok=True)
     with open(user_data_path, "w") as f:
-        json.dump(users, f)
+        json.dump(users, f, indent=4)
 
     return jsonify({
         "uid": user_uid,
@@ -144,7 +144,7 @@ async def modify_user():
     
     user["pwd_hash"] = hash_pwd(password)
     with open(user_data_path, "w") as f:
-        json.dump(users, f)
+        json.dump(users, f, indent=4)
     return jsonify ({"message": "Contraseña actualizada correctamente"}), 200
     
 if __name__ == '__main__':
