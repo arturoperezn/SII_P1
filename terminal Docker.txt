@@ -21,3 +21,10 @@ sii_p1_filesvc:latest   81d0284ae6cc        221MB         53.5MB
 sii_p1_usersvc:latest   81d0284ae6cc        221MB         53.5MB
 
 docker volume ls -> muestra la lista de todos los volúmenes de datos independientes creados en tu sistema Docker. Los volúmenes son el mecanismo principal que utiliza Docker para persistir datos fuera del ciclo de vida de los contenedores (por ejemplo, los archivos de una base de datos o subidas de usuarios).
+
+# Establecer los permisos de ejecución para el usuario
+$> sudo /usr/local/bin/si2setuid.sh 3000000:100000 $USER
+# Arrancar el demonio dockerd
+$> dockerd-rootless-setuptool.sh install --skip-iptables
+$> export DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock
+# Mostrar l
