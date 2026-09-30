@@ -1,3 +1,5 @@
+memoria.txt
+
 # Python virtual environment and secrets
 .venv/
 venv/
@@ -33,4 +35,3 @@ tempCodeRunnerFile.py
 Thumbs.db
 
 
-memoria.txt
