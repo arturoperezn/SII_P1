@@ -1,1 +1,9 @@
+Memoria (debe contener una primera página con los autores, grupo y equipo) 
+
+Memoria de la práctica con una descripción y capturas de la resolución de cada apartado.
+
+
+
 JUSTIFICAR DECISIONES DE DISEÑO
+
+
