@@ -21,7 +21,7 @@ Grupo:
 - 1312
 
 Equipo:
-- 
+- 12
 
 Escuela Politécnica Superior
 Universidad Autónoma de Madrid
@@ -30,195 +30,127 @@ Curso 2026/2027
 
 MEMORIA DE LA PRÁCTICA
 
-1. INTRODUCCIÓN
+1
+  #### 1.1. Responsabilidad y Arquitectura del Servicio
 
-En esta práctica se ha desarrollado un sistema de almacenamiento de documentos compartidos basado en una arquitectura de microservicios. La solución está dividida en dos servicios independientes: el servicio de usuarios, encargado de gestionar registros, autenticación y tokens, y el servicio de ficheros, encargado de almacenar y controlar el acceso a los documentos de cada usuario.
+  • Propósito: Gestión de identidades, autenticación y emisión de credenciales de acceso
+  (UID y tokens).
+  • Framework: Mencionar el uso de Quart como framework ASGI asíncrono en Python,
+  escuchando en el puerto 5050.
 
-La aplicación se implementa con Quart, un framework ASGI para Python, y se despliega mediante contenedores Docker usando docker-compose. El objetivo principal es crear una API REST funcional, segura y modular, en la que cada servicio puede gestionarse y escalarse de forma independiente.
+  #### 1.2. Generación de UIDs y Tokens (El secreto compartido)
 
+  • UID de usuario: Se genera con uuid.uuid4() para garantizar un identificador único y
+  no predecible para cada usuario.
+  • Token de acceso: Se deriva mediante uuid.uuid5(UUID(secret_uuid), user_uid) usando el
+  espacio de nombres de un UUID secreto.
+  • Comunicación sin acoplamiento: Explica que el archivo secret_uuid.txt se aloja en el
+  volumen compartido /app/shared_data. Esto permite que el servicio file.py valide tokens
+  de forma autónoma sin necesidad de consultar por red a user.py en cada petición.
+  • Nota de seguridad: Mencionar que, aunque este mecanismo determinista cumple con los
+  requisitos didácticos, en producción se usarían esquemas como JWT firmados con clave
+  asimétrica y tiempo de expiración.
 
-2. OBJETIVOS DE LA PRÁCTICA
+  #### 1.3. Seguridad y Persistencia de Datos
 
-Los objetivos docentes de esta práctica son los siguientes:
-- Desarrollar microservicios en Python con una API REST.
-- Gestionar autenticación mediante tokens y validación de acceso.
-- Diseñar un sistema de almacenamiento basado en directorios por usuario.
-- Implementar persistencia local en archivos JSON y texto.
-- Utilizar Docker y docker-compose para desplegar los servicios.
-- Crear un cliente de pruebas para verificar el comportamiento de todas las rutas.
-
-
-3. ARQUITECTURA DE LA SOLUCIÓN
-
-La práctica se estructura en dos microservicios principales:
-
-3.1 Servicio de usuarios
-Este servicio gestiona la creación, autenticación y modificación de usuarios. Cada usuario se identifica con un UID generado aleatoriamente y se le asigna un token de acceso calculado a partir de un UUID secreto compartido entre los servicios.
-
-Funciones implementadas:
-- PUT /user: creación de un usuario con nombre y contraseña.
-- POST /user: login del usuario y obtención de token.
-- PATCH /user: cambio de contraseña del usuario autenticado.
-
-La contraseña no se almacena en texto plano; se preserva mediante un hash SHA-256.
-
-3.2 Servicio de ficheros
-Este servicio gestiona el directorio de documentos de cada usuario. Cada UID corresponde a un directorio físico, dentro del cual se guardan los archivos de texto. Además, el servicio mantiene metadatos para indicar si un documento es público o privado.
-
-Funciones implementadas:
-- GET /file/<uid>: listar documentos del usuario autenticado.
-- PUT /file/<uid>/<filename>: crear o actualizar un documento.
-- GET /file/<uid>/<filename>: recuperar un documento.
-- DELETE /file/<uid>/<filename>: eliminar un documento.
-- PATCH /file/<uid>/<filename>: cambiar la visibilidad del documento.
-
-El servicio de ficheros valida el token de autenticación en la cabecera Authorization con el formato Bearer <token>.
-
-3.3 Cliente de pruebas
-El cliente de pruebas se ha desarrollado en Python con la librería requests. Su función es lanzar una batería de peticiones para comprobar que todos los endpoints funcionan correctamente, incluyendo los escenarios de error esperados.
+  • Almacenamiento: Persistencia local en formato JSON en /app/data/users.json (montado
+  en el volumen persistente data_users).
+  • Protección de contraseñas: Justificar que las contraseñas nunca se guardan en texto
+  claro; se procesan mediante hash_pwd() utilizando un algoritmo seguro unidireccional
+  (SHA-256 con hexdigest()).
+  • Estructura del registro: Explicar la estructura almacenada en memoria y disco:
+    {
+      "alicia": {
+        "uid": "e7b0c3a2-...",
+        "pwd_hash": "5e884898da28..."
+      }
+    }
 
 
-4. DISEÑO E IMPLEMENTACIÓN
+  #### 1.4. Endpoints y Tratamiento de Errores
 
-4.1 Generación de UID y tokens
-Para asegurar la identidad de los usuarios, se emplea UUID v4 para generar un identificador único por usuario. El token de acceso se genera con uuid.uuid5 usando un UUID secreto compartido por ambos servicios. Esto permite verificar que un usuario pueda acceder solamente a su propio directorio y evita que otros usuarios no autorizados puedan operar sobre recursos ajenos.
+  Detalla cada endpoint implementado mediante una breve tabla o lista explicativa:
 
-4.2 Almacenamiento de usuarios
-La información del usuario se guarda en un archivo JSON dentro del volumen persistente del servicio. En cada registro se conserva:
-- nombre de usuario
-- UID
-- contraseña en formato hash
-
-Esto permite que la información pueda recuperarse tras reiniciar el contenedor sin perder el estado del servicio.
-
-4.3 Almacenamiento de documentos
-Cada usuario tiene un directorio identificado por su UID. Dentro de dicho directorio se almacenan los archivos de texto. Además, el sistema usa un archivo metadata.json para guardar la visibilidad pública o privada de cada documento.
-
-4.4 Seguridad y validación
-Las principales decisiones de seguridad son:
-- Las contraseñas nunca se guardan en claro.
-- Los tokens se validan en cada petición que requiera autenticación.
-- Un usuario solo puede acceder a su propio directorio.
-- Los documentos privados solo pueden leerse por su propietario.
-- Los documentos públicos pueden consultarse sin autenticación si se conoce el UID y el nombre del archivo.
-
-4.5 Docker y despliegue
-Se usa docker-compose para levantar los servicios en contenedores separados, cada uno con su propio puerto y volumen de persistencia. Esto facilita el aislamiento de la lógica, la reutilización del mismo proyecto y la fácil ejecución del sistema en un entorno reproducible.
+  • PUT /user (Registro de usuario):
+      • Entrada: JSON {"name": "...", "password": "..."}.
+      • Validaciones: Devuelve 400 Bad Request si faltan parámetros o cuerpo; 409
+      Conflict si el nombre de usuario ya existe.
+      • Éxito: Genera UID, hash y token, persiste en disco y devuelve 201 Created con {
+      "uid": "...", "token": "..." }.
+  • POST /user (Inicio de sesión / Login):
+      • Entrada: JSON {"name": "...", "password": "..."}.
+      • Validaciones: 400 Bad Request si faltan datos; 404 Not Found si el usuario no
+      existe; 401 Unauthorized si la contraseña no coincide con el hash.
+      • Éxito: Devuelve 200 OK con { "uid": "...", "token": "..." }.
+  • PATCH /user (Modificación de contraseña):
+      • Autenticación: Requiere la cabecera Authorization: Bearer <token>. La función
+      auxiliar check_login() busca el usuario que generó dicho token. Si no es válido ->
+      401 Unauthorized.
+      • Validaciones: 400 Bad Request si falta el nuevo campo password.
+      • Éxito: Actualiza el hash de la contraseña en users.json y responde 200 OK.
 
 
-5. ENDPOINTS Y COMPORTAMIENTO
+  #### 1.5. Capturas de pantalla
 
-Servicio de usuarios:
-- PUT /user
-  Descripción: crear usuario.
-  Entrada: JSON con name y password.
-  Salida: UID y token.
+  • Captura de un registro exitoso (PUT /user) y un login exitoso (POST /user).
+  • Captura de un error representativo (e.g. 409 Conflict al intentar registrar el mismo
+  usuario).
+  ──────
+  ### 2. Apartado: Batería de Pruebas y Validación (cliente.py)
 
-- POST /user
-  Descripción: iniciar sesión.
-  Entrada: JSON con name y password.
-  Salida: UID y token.
+  La rúbrica califica el cliente con 2 puntos y exige que sea no interactivo,
+  automatizado con la librería requests y que compruebe tanto los casos de éxito como los
+  casos de error.
 
-- PATCH /user
-  Descripción: modificar la contraseña.
-  Entrada: JSON con password.
-  Requiere: cabecera Authorization: Bearer <token>.
+  #### 2.1. Metodología y Estructura del Cliente
 
-Servicio de ficheros:
-- GET /file/<uid>
-  Descripción: listar documentos del usuario.
-  Requiere autenticación.
-
-- PUT /file/<uid>/<filename>
-  Descripción: crear o actualizar documento.
-  Requiere autenticación.
-
-- GET /file/<uid>/<filename>
-  Descripción: recuperar el contenido de un archivo.
-  Si es público, permite acceso sin autenticación; si es privado, hace falta autenticación.
-
-- DELETE /file/<uid>/<filename>
-  Descripción: eliminar documento.
-  Requiere autenticación.
-
-- PATCH /file/<uid>/<filename>
-  Descripción: cambiar visibilidad pública/privada.
-  Requiere autenticación.
+  • Automatización: Explicar que el script ejecuta una secuencia de peticiones HTTP
+  contra ambos microservicios sin intervención manual.
+  • Mecanismo de validación (probar()):
+      • Detalla cómo funciona la función auxiliar probar(nombre_prueba, respuesta,
+      codigo_esperado):
+          • Comprueba si el código HTTP devuelto coincide exactamente con el esperado.
+          • Muestra un mensaje verde/limpio [OK] en caso de éxito.
+          • En caso de fallo ([FAIL]), imprime el código recibido y el cuerpo del error
+          para facilitar la depuración.
 
 
-6. CAPTURAS DE LA RESOLUCIÓN
 
-En esta sección se deben incluir capturas del funcionamiento del sistema. Se recomienda documentar al menos:
-- Captura 1: creación de usuarios.
-- Captura 2: inicio de sesión y obtención del token.
-- Captura 3: creación de un archivo público y privado.
-- Captura 4: listado de documentos del usuario.
-- Captura 5: acceso autorizado a un documento propio.
-- Captura 6: acceso no autorizado a un documento privado ajeno.
-- Captura 7: modificación de visibilidad de un archivo.
-- Captura 8: ejecución del cliente de pruebas completo.
+  #### 2.2. Cobertura de Pruebas Implementadas
 
-Ejemplo de descripción de captura:
-Figura 1. Ejecución de creación del usuario alice mediante una petición PUT a /user.
+  Organiza la explicación de las pruebas en dos grandes bloques:
 
-[Insertar captura aquí]
-
-Figura 2. Login exitoso y devolución del UID y token de acceso.
-
-[Insertar captura aquí]
-
-Figura 3. Creación de un documento asociado al usuario autenticado.
-
-[Insertar captura aquí]
-
-Figura 4. Comprobación del acceso a un documento público desde otro usuario.
-
-[Insertar captura aquí]
-
-Figura 5. Resultado de la ejecución del cliente de pruebas con todas las rutas evaluadas.
-
-[Insertar captura aquí]
+  1. Casos de Éxito (Happy Path):
+      • Creación de usuario Alicia (PUT /user → 201).
+      • Inicio de sesión (POST /user → 200).
+      • Subida de documento privado (PUT /file/<uid>/doc.txt → 200).
+      • Lectura de documento privado por su propietario con token (GET /file/<uid>/doc.
+      txt → 200).
+      • Modificación de visibilidad a público (PATCH /file/<uid>/doc.txt → 200).
+      • Lectura de documento público sin token (GET /file/<uid>/doc.txt → 200).
+      • Listado de documentos del usuario (GET /file/<uid> → 200).
+      • Eliminación de documento (DELETE /file/<uid>/doc.txt → 200).
+  2. Casos de Error y Control de Excepciones (Edge Cases):
+      • Parámetros faltantes o inválidos: Envío de JSON incompleto a /user (400 Bad
+      Request).
+      • Conflicto de unicidad: Reintentar registrar un usuario existente (409 Conflict).
+      • Credenciales incorrectas: Login con contraseña errónea (401 Unauthorized) o
+      usuario inexistente (404 Not Found).
+      • Acceso no autorizado: Intentar leer un archivo privado sin token (401
+      Unauthorized) o con el token de otro usuario distinto.
+      • Recurso inexistente: Intentar recuperar o borrar un archivo que no existe (404
+      Not Found).
 
 
-7. JUSTIFICAR DECISIONES DE DISEÑO
+  │ Tip
+  │ En tu archivo cliente.py actual tienes implementado el flujo básico de archivos de
+  │ Alicia, pero aún no pruebas el POST /user, PATCH /user, ni los errores 400/409. Te
+  │ conviene añadir esas pruebas a cliente.py para que la cobertura sea del 100% y la
+  │ memoria refleje todas las comprobaciones.
 
-La decisión principal de diseño ha sido separar la lógica en dos microservicios distintos. Esta estructura permite mantener una clara división de responsabilidades:
-- el servicio de usuarios se encarga de identidad y autenticación,
-- el servicio de archivos se encarga de la gestión del almacenamiento.
+  #### 2.3. Ejecución y Evidencias
 
-También se ha optado por una persistencia sencilla basada en archivos JSON y directorios de texto, ya que es suficiente para un prototipo funcional y facilita la explicación, depuración y pruebas de la práctica. La gestión de metadatos por documento permite controlar con facilidad la propiedad y la visibilidad sin introducir complejidad innecesaria.
-
-La validación de tokens en cada petición restringe el acceso a recursos no autorizados. Este planteamiento refleja un diseño seguro y transparente, compatible con los requisitos del enunciado y con la filosofía de los microservicios.
-
-Además, el uso de Docker y docker-compose permite reproducir el entorno completo con un único comando, favoreciendo la ejecución del sistema en cualquier máquina con Docker instalado. Esto simplifica la evaluación y el despliegue del proyecto.
-
-
-8. CONCLUSIONES
-
-La práctica ha permitido poner en práctica los conceptos de API REST, autenticación basada en tokens, serialización JSON y despliegue en contenedores. El resultado es un sistema funcional que cumple con los objetivos de la asignatura: gestión de usuarios, protección del acceso a documentos y despliegue de servicios de forma aislada.
-
-La solución desarrollada demuestra la utilidad de los microservicios para separar responsabilidades y facilitar la evolución del sistema. En un escenario real, podría ampliarse con mecanismos de autenticación más seguros, como JWT con expiración y firma criptográfica, así como con mejor gestión de permisos y almacenamiento persistente en bases de datos.
-
-
-9. BIBLIOGRAFÍA Y REFERENCIAS
-
-- Quart documentation: https://quart.palletsprojects.com/en/latest/
-- Docker documentation: https://docs.docker.com/
-- Docker Compose documentation: https://docs.docker.com/compose/
-- Python uuid library: https://docs.python.org/3/library/uuid.html
-- Práctica 1: Microservicios. API REST en contenedor. Universidad Autónoma de Madrid.
-
-
-ANEXO: LISTA DE ARCHIVOS DEL PROYECTO
-
-- cliente.py
-- docker-compose.yml
-- Dockerfile
-- requirements.txt
-- src/user.py
-- src/file.py
-- data_users/users.json
-- data_files/<uid>/metadata.json
-- shared_data/secret_uuid.txt
-- README.md
-
+  • Captura de pantalla de la terminal ejecutando python cliente.py con todas las pruebas
+  pasando con [OK].
+  • Breve explicación de cómo se reproducen los tests (con los contenedores levantados
+  mediante docker-compose up).
