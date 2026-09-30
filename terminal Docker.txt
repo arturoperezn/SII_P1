@@ -1,0 +1,23 @@
+terminal Docker:
+docker-compose up -> lee el archivo de configuración docker-compose.yml de tu directorio actual y crea e inicia todos los contenedores, redes y volúmenes necesarios para ejecutar tu aplicación multi-contenedor.
+
+docker-compose up -d -> Ejecuta los contenedores en segundo plano y te libera la terminal.
+
+docker-compose down -v -> detiene la ejecución de tus contenedores y realiza una limpieza profunda y destructiva del entorno. Elimina volúmenes (datos).
+
+docker container ls -> muestra la lista de los contenedores Docker que están actualmente en ejecución en tu sistema.
+
+docker container ls -a -> Muestra todos los contenedores, incluidos los que están detenidos o han fallado (Exited).
+
+docker container prune -> elimina de golpe todos los contenedores que están detenidos (con estado Exited o Created).
+
+docker image ls -> muestra la lista de todas las imágenes Docker almacenadas localmente en tu máquina. 
+docker image ls
+                                                                                                    i Info →   U  In Use
+IMAGE                   ID             DISK USAGE   CONTENT SIZE   EXTRA
+hello-world:latest      5e2309035332       25.9kB         9.49kB
+python:3.11-slim        da047cb8f9d1        189MB         47.8MB
+sii_p1_filesvc:latest   81d0284ae6cc        221MB         53.5MB
+sii_p1_usersvc:latest   81d0284ae6cc        221MB         53.5MB
+
+docker volume ls -> muestra la lista de todos los volúmenes de datos independientes creados en tu sistema Docker. Los volúmenes son el mecanismo principal que utiliza Docker para persistir datos fuera del ciclo de vida de los contenedores (por ejemplo, los archivos de una base de datos o subidas de usuarios).
