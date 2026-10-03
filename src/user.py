@@ -111,6 +111,9 @@ async def login():
     
     name = data.get("name")
     password = data.get("password")
+
+    if not name or not password:
+        return jsonify({"error": "Faltan parámetros requeridos"}), 400
     
     #comprobamos si el usuario existe
     user = users.get(name)

@@ -67,15 +67,17 @@ async  def get_user_documents(uid: str):
         return jsonify({"documents": []}), 200
     user_documents = []
     for f in user_directory.iterdir():
-        if f.is_file():
+        if f.is_file() and f.name != "metadata.json":
             user_documents.append(f.name)
     return jsonify({"documents": user_documents}), 200
 
 # Crea o actualiza documento de usuario
 @app.put('/file/<uid>/<filename>')
-async def create_or_update_user_document(uid, filename):
+async def create_or_update_user_document(uid: str, filename: str):
     if not check_login(uid):
         return jsonify({"error": "No autorizado"}), 401
+    if filename == "metadata.json":
+        return jsonify({"error": "No se puede crear o actualizar 'metadata.json' directamente, nombre reservado"}), 403
     # El usuario está autenticado y tiene permiso, crea o actualiza el documento
     data = await request.get_data()
     if not data:
@@ -89,14 +91,18 @@ async def create_or_update_user_document(uid, filename):
     if filename not in metadata:
         metadata[filename] = {"public" : False}
         write_metadata(uid, metadata)
-    return jsonify({"message": f"Document '{filename}' created/updated for user '{uid}'."}), 200
+        return jsonify({"message": f"Document '{filename}' created for user '{uid}'."}), 201
+    else:
+        return jsonify({"message": f"Document '{filename}' updated for user '{uid}'."}), 200
 
 # Recupera documento de usuario
 @app.get('/file/<uid>/<filename>')
-async def get_user_document(uid, filename):
+async def get_user_document(uid: str, filename: str):
     file_path = files_data_path / uid / filename
-    if not file_path.exists() or filename == "metadata.json":
+    if not file_path.exists():
         return jsonify({"error": "Documento no encontrado"}), 404
+    if filename == "metadata.json":
+        return jsonify({"error": "No se puede acceder a 'metadata.json' directamente, nombre reservado"}), 403
     metadata = read_metadata(uid)
     is_public = metadata.get(filename, {}).get("public", False)
     if not is_public:
@@ -107,13 +113,15 @@ async def get_user_document(uid, filename):
 
 # Elimina documento de usuario
 @app.delete('/file/<uid>/<filename>')
-async def delete_user_document(uid, filename):
+async def delete_user_document(uid: str, filename: str):
     if not check_login(uid):
         return jsonify({"error": "No autorizado"}), 401
     # El usuario está autenticado y tiene permiso, elimina el documento
     file_path = files_data_path / uid / filename
-    if not file_path.exists() or filename == "metadata.json":
+    if not file_path.exists():
         return jsonify({"error": "Documento no encontrado"}), 404
+    if filename == "metadata.json":
+        return jsonify({"error": "No se puede eliminar 'metadata.json' directamente, nombre reservado"}), 403
     file_path.unlink()
     metadata = read_metadata(uid)
     if filename in metadata:
@@ -123,13 +131,15 @@ async def delete_user_document(uid, filename):
 
 # Modifica la visibilidad (pública) de un documento de usuario
 @app.patch('/file/<uid>/<filename>')
-async def modify_document_visibility(uid, filename):
+async def modify_document_visibility(uid: str, filename: str):
     if not check_login(uid):
         return jsonify({"error": "No autorizado"}), 401
     # El usuario está autenticado y tiene permiso, modifica la visibilidad del documento
     file_path = files_data_path / uid / filename
-    if not file_path.exists() or filename == "metadata.json":
+    if not file_path.exists():
         return jsonify({"error": "Documento no encontrado"}), 404
+    if filename == "metadata.json":
+        return jsonify({"error": "No se puede modificar 'metadata.json' directamente, nombre reservado"}), 403
     data = await request.get_json()
     if not data or "public" not in data:
         return jsonify({"error": "Faltan parámetros requeridos"}), 400
