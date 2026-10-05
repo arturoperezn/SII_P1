@@ -9,10 +9,6 @@ app = Quart(__name__)
 
 # source .venv/bin/activate
 
-"""   curl -X PUT http://127.0.0.1:5050/user \
-        -H "Content-Type: application/json" \
-        -d '{"name": "alice", "password": "mi_password"}'
-"""
 
 # Comprobar si ejecutando en contenedor Docker o entorno local y establecer la ruta de datos de archivos en consecuencia
 if Path("/app/data").exists() or os.path.exists("/.dockerenv"):
@@ -155,7 +151,7 @@ async def modify_user():
     user["pwd_hash"] = hash_pwd(password)
     with open(user_data_path, "w") as f:
         json.dump(users, f, indent=4)
-    return jsonify ({"message": "Contraseña actualizada correctamente"}), 200
+    return jsonify ({"message": "Password actualizada correctamente"}), 200
     
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5050)

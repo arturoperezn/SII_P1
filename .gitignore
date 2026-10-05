@@ -34,4 +34,8 @@ tempCodeRunnerFile.py
 .DS_Store
 Thumbs.db
 
-
+# Datos generados en ejecución y pruebas
+data_users/
+data_files/
+shared_data/
+*.json
