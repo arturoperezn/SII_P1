@@ -4,6 +4,9 @@
 
 # OPCIÓN A: EJECUCIÓN CON DOCKER COMPOSE
 # Para construir imagen y levantar ambos microservicios en los laboratorios en modo rootless:
+sudo /usr/local/bin/si2setuid.sh 3000000:100000 $USER
+dockerd-rootless-setuptool.sh install --skip-iptables
+export DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock
 docker compose up --build
 # Para detener servicios:
 docker compose down
