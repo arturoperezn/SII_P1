@@ -3,7 +3,7 @@
 # Nota: Todos los comandos deben ejecutarse en el directorio raíz del proyecto. 
 
 # OPCIÓN A: EJECUCIÓN CON DOCKER COMPOSE
-# Para construir imagen y levantar ambos microservicios:
+# Para construir imagen y levantar ambos microservicios en los laboratorios en modo rootless:
 docker compose up --build
 # Para detener servicios:
 docker compose down
