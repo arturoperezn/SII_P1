@@ -6,12 +6,18 @@ import json
 
 app = Quart(__name__)
 
-files_data_path = Path("/app/data")
-
+# Comprobar si ejecutando en contenedor Docker o entorno local y establecer la ruta de datos de archivos en consecuencia
+if Path("/app/data").exists() or os.path.exists("/.dockerenv"):
+    files_data_path = Path("/app/data")
+else:
+    files_data_path = Path("data_files")
 
 # Carga o genera un UUID secreto para la aplicación, que se usará para generar tokens de usuario.
 def _load_or_create_secret_uuid_env():
-    secret_path = Path("/app/shared_data/secret_uuid.txt")
+    if Path("/app/shared_data").exists() or os.path.exists("/.dockerenv"):
+        secret_path = Path("/app/shared_data/secret_uuid.txt")
+    else:
+        secret_path = Path("shared_data/secret_uuid.txt")
     secret_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         secret_uuid = str(uuid4())
@@ -150,3 +156,6 @@ async def modify_document_visibility(uid: str, filename: str):
     metadata[filename]["public"] = bool(public)
     write_metadata(uid, metadata)
     return jsonify({"message": f"Document '{filename}' visibility updated for user '{uid}' to {public}."}), 200
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5051)

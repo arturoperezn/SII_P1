@@ -14,7 +14,11 @@ app = Quart(__name__)
         -d '{"name": "alice", "password": "mi_password"}'
 """
 
-user_data_path = Path("/app/data/users.json")
+# Comprobar si ejecutando en contenedor Docker o entorno local y establecer la ruta de datos de archivos en consecuencia
+if Path("/app/data").exists() or os.path.exists("/.dockerenv"):
+    user_data_path = Path("/app/data/users.json")
+else:
+    user_data_path = Path("data_users/users.json")
 users = {}
 if user_data_path.exists():
     with open(user_data_path, "r") as f:
@@ -22,7 +26,10 @@ if user_data_path.exists():
 
 # Carga o genera un UUID secreto para la aplicación, que se usará para generar tokens de usuario.
 def _load_or_create_secret_uuid_env():
-    secret_path = Path("/app/shared_data/secret_uuid.txt")
+    if Path("/app/shared_data").exists() or os.path.exists("/.dockerenv"):
+        secret_path = Path("/app/shared_data/secret_uuid.txt")
+    else:
+        secret_path = Path("shared_data/secret_uuid.txt")
     secret_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         secret_uuid = str(uuid4())
