@@ -21,7 +21,7 @@ if user_data_path.exists():
         users = json.load(f)
 
 # Carga o genera un UUID secreto para la aplicación, que se usará para generar tokens de usuario.
-def _load_or_create_secret_uuid_env():
+def load_or_create_secret_uuid():
     if Path("/app/shared_data").exists() or os.path.exists("/.dockerenv"):
         secret_path = Path("/app/shared_data/secret_uuid.txt")
     else:
@@ -37,7 +37,7 @@ def _load_or_create_secret_uuid_env():
             secret_uuid = f.read().strip()
         return secret_uuid
 
-secret_uuid = _load_or_create_secret_uuid_env()
+secret_uuid = load_or_create_secret_uuid()
 
 # Función aux para guardar la contraseña encriptada usando SHA-256
 def hash_pwd (password: str) -> str:

@@ -13,7 +13,7 @@ else:
     files_data_path = Path("data_files")
 
 # Carga o genera un UUID secreto para la aplicación, que se usará para generar tokens de usuario.
-def _load_or_create_secret_uuid_env():
+def load_or_create_secret_uuid():
     if Path("/app/shared_data").exists() or os.path.exists("/.dockerenv"):
         secret_path = Path("/app/shared_data/secret_uuid.txt")
     else:
@@ -29,7 +29,7 @@ def _load_or_create_secret_uuid_env():
             secret_uuid = f.read().strip()
         return secret_uuid
 
-secret_uuid = _load_or_create_secret_uuid_env()
+secret_uuid = load_or_create_secret_uuid()
 
 # Comprueba si la petición actual trae un token válido de sesión
 def check_login(uid):
